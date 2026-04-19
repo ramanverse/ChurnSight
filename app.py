@@ -8,11 +8,24 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
+from dotenv import load_dotenv
+load_dotenv()
+
+# On Streamlit Cloud, secrets are injected via st.secrets (not .env)
+import os as _os
+try:
+    if not _os.getenv("GROQ_API_KEY") and "GROQ_API_KEY" in st.secrets:
+        _os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+except Exception:
+    pass  # No secrets.toml locally — key must come from .env
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 
 from src.data_preprocessing import load_data, preprocess, split_data, preprocess_uploaded
 from src.model import train_models, evaluate_all_models, save_artifacts, load_artifacts, get_best_model, MODEL_FILE
 from src.feature_engineering import compute_feature_importance, get_churn_risk_level
+from src.agent import run_retention_agent
 
 st.set_page_config(
     page_title="ChurnSight",
@@ -62,9 +75,10 @@ with st.sidebar:
 
     page = st.radio(
         "Page",
-        ["Overview", "Train & Evaluate", "Predict", "Feature Importance", "About"],
+        ["Overview", "Train & Evaluate", "Predict", "Feature Importance", "AI Retention Agent", "About"],
         label_visibility="collapsed",
     )
+
 
     st.divider()
     df_bundle = _load_default_df()
@@ -380,7 +394,96 @@ elif page == "Feature Importance":
     st.dataframe(importance_df.style.format({"Importance": "{:.6f}"}),
                  use_container_width=True, hide_index=True)
 
-# --- Page 5: About ---
+# --- Page 5: AI Retention Agent ---
+
+elif page == "AI Retention Agent":
+    st.title("AI Retention Agent")
+    st.caption("Generate tailored retention strategies for at-risk customers using our AI assistant.")
+
+    if not _ensure_models():
+        st.warning("No trained models found. Train them first.")
+        st.stop()
+
+    models = st.session_state.models
+    scaler = st.session_state.scaler
+    feature_names = st.session_state.feature_names
+    encoders = st.session_state.encoders
+    best_name, _ = get_best_model(
+        models,
+        st.session_state.get("metrics") or {n: {"roc_auc": 0} for n in models}
+    )
+    selected_model = models[best_name]
+
+    if df_bundle is None:
+        st.error("Bundled dataset not found.")
+        st.stop()
+
+    upload_df = df_bundle.copy()
+
+    with st.spinner("Analyzing customers..."):
+        X_new = preprocess_uploaded(upload_df, scaler, feature_names, encoders)
+        probs = selected_model.predict_proba(X_new)[:, 1]
+
+    cust_ids = upload_df["customerID"].values if "customerID" in upload_df.columns else \
+               [f"CUST-{i+1:04d}" for i in range(len(upload_df))]
+
+    result_df = pd.DataFrame({
+        "Customer ID": cust_ids,
+        "Churn Probability": probs,
+        "Risk Level": [get_churn_risk_level(p) for p in probs]
+    })
+
+    at_risk_df = result_df[result_df["Risk Level"].str.contains("High|Critical", case=False, regex=True)].sort_values("Churn Probability", ascending=False)
+
+    if at_risk_df.empty:
+        st.success("No high-risk customers found!")
+        st.stop()
+
+    st.write("Select an at-risk customer to generate a retention strategy:")
+    
+    selected_cust_id = st.selectbox("Customer ID", at_risk_df["Customer ID"].tolist())
+
+    if st.button("Generate Strategy", type="primary"):
+        cust_row = upload_df[upload_df["customerID"] == selected_cust_id].iloc[0]
+        cust_dict = cust_row.to_dict()
+
+        cust_info = at_risk_df[at_risk_df["Customer ID"] == selected_cust_id].iloc[0]
+        prob = float(cust_info["Churn Probability"])
+        risk = str(cust_info["Risk Level"])
+
+        importance_df = compute_feature_importance(selected_model, feature_names, top_n=5)
+        factors = dict(zip(importance_df["Feature"], importance_df["Importance"]))
+
+        with st.spinner("Agent is reasoning over customer profile and KB..."):
+            try:
+                report = run_retention_agent(
+                    customer_id=selected_cust_id,
+                    customer_data=cust_dict,
+                    churn_probability=prob,
+                    risk_level=risk,
+                    feature_importance=factors
+                )
+
+                st.subheader(f"Retention Strategy for {selected_cust_id}")
+                st.write(f"**Risk Summary:** {report.risk_summary}")
+
+                st.write("**Contributing Factors:**")
+                for factor in report.contributing_factors:
+                    st.markdown(f"- {factor}")
+
+                st.write("**Recommended Actions:**")
+                for action in report.recommended_actions:
+                    st.markdown(f"- **{action.action}**: {action.reasoning}")
+
+                with st.expander("Supporting Sources"):
+                    for src in report.supporting_sources:
+                        st.markdown(f"- {src}")
+
+                st.warning(f"**Disclaimers:** {report.business_ethical_disclaimers}")
+            except Exception as e:
+                st.error(f"Error generating report: {e}")
+
+# --- Page 6: About ---
 
 elif page == "About":
     st.title("About ChurnSight")
