@@ -1,0 +1,29 @@
+TELECOM CUSTOMER RETENTION BEST PRACTICES:
+
+1. High Monthly Charges & Contract Type:
+Customers on month-to-month contracts with high monthly charges are most at risk of churning.
+Recommendation: Offer a transition to a 1-year or 2-year contract with a discounted monthly rate. If the customer uses multiple services, propose a discounted bundle. Give a one-time credit to offset the perceived high cost.
+
+2. Lack of Online Security & Tech Support:
+Customers without Online Security or Tech Support (especially Fiber Optic users) tend to churn because of technical difficulties or security concerns.
+Recommendation: Bundle standard tech support and basic online security for free for the first 3-6 months. Educate the customer on the value of these services.
+
+3. Streaming Services (StreamingTV & StreamingMovies) but no long-term commitment:
+Customers who stream heavily but have no contract are vulnerable to competitor promotions.
+Recommendation: Offer complimentary premium streaming add-ons or streaming platform subscriptions if they sign a 1-year agreement. 
+
+4. Fiber Optic Internet Issues:
+Fiber optic customers have higher expectations and higher churn when unsatisfied.
+Recommendation: Conduct a complimentary network health check. Provide priority routing for customer service calls.
+
+5. Customers with Dependents or Partners:
+Households with dependents have lower churn but appreciate cost savings.
+Recommendation: Offer a "Family Plan" discount or free additional lines for dependents. Provide parental control add-ons.
+
+6. Issue - High Tenure but Sudden Risk:
+For high-tenure customers exhibiting churn signals, the issue is often a recent negative service experience or aggressive competitor pricing.
+Recommendation: Deploy a "Loyalty" retention agent. Waive upgrade fees for new hardware/routers and offer a loyalty discount thanking them for their years of service.
+
+7. Noisy or Missing Data Handling:
+If reasons for churn are unclear (noisy/missing data), the best approach is an exploratory "Check-in" call.
+Recommendation: Schedule a customer satisfaction survey call with a guaranteed $10 bill credit just for participating to uncover hidden pain points.
